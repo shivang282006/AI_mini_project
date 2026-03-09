@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Assistant</title>
+    <!-- Prism.js CSS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #10b981;
+            --border-color: #334155;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-sans);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--surface-color);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            padding: 2.5rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: 2rem;
+            box-sizing: border-box;
+        }
+
+        .container:hover {
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            background-color: rgba(15, 23, 42, 0.8);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            /* Space out slider and button */
+            align-items: center;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .slider-group label {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            text-transform: none;
+        }
+
+        input[type="range"] {
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .output-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+            /* Hidden strictly when no code */
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--border-color);
+        }
+
+        pre[class*="language-"] {
+            margin: 0 !important;
+            border-radius: 12px !important;
+            background-color: #0f172a !important;
+            border: 1px solid var(--border-color) !important;
+            padding: 1rem !important;
+            display: none;
+            /* hidden until generated */
+        }
+
+        .output-box {
+            width: 100%;
+            min-height: 200px;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            box-sizing: border-box;
+            color: var(--accent);
+            position: relative;
+        }
+
+        .output-box.empty {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-sans);
+            font-style: italic;
+        }
+
+        .error-message {
+            color: #ef4444;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>AI Code Assistant</h1>
+            <p>Generate smart code completions powered by Transformers</p>
+        </div>
+
+        <div class="editor-container">
+            <div class="input-group">
+                <label for="codeInput">Input Code / Context</label>
+                <textarea id="codeInput" placeholder="# function to check prime number&#10;def is_prime(n):"></textarea>
+                <small style="color: var(--text-muted); font-size: 0.8rem;">Tip: Press <kbd
+                        style="background: var(--border-color); padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono);">Ctrl
+                        + Enter</kbd> to generate.</small>
+            </div>
+
+            <div class="actions">
+                <div class="slider-group">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <label for="tempSlider" style="margin:0;">
+                            Temperature: <span id="tempValue">0.2</span>
+                        </label>
+                        <small
+                            style="color: var(--text-muted); font-size: 0.75rem; text-transform: none; font-weight: 400;">
+                            Low = precise &nbsp;|&nbsp; High = creative
+                        </small>
+                    </div>
+                    <input type="range" id="tempSlider" min="0.01" max="1.0" step="0.01" value="0.2"
+                        oninput="document.getElementById('tempValue').textContent = parseFloat(this.value).toFixed(2)">
+                </div>
+                <button id="generateBtn" onclick="generateCode()">
+                    Generate Completion
+                    <div class="spinner" id="spinner"></div>
+                </button>
+            </div>
+
+            <div id="error" class="error-message"></div>
+
+            <div class="output-group">
+                <div class="output-header">
+                    <label>AI Generated Completion</label>
+                    <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span id="copyText">Copy</span>
+                    </button>
+                </div>
+                <!-- Placeholder when empty -->
+                <div id="outputPlaceholder" class="output-box empty">Generated code will appear here...</div>
+                <!-- Syntax Highlighted Block -->
+                <pre id="outputPre"><code id="outputCode" class="language-python"></code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prism.js JS for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        let rawGeneratedCode = ""; // Keep track for copying
+
+        async function generateCode() {
+            const codeInput = document.getElementById('codeInput').value;
+            const temperature = document.getElementById('tempSlider').value;
+            const generateBtn = document.getElementById('generateBtn');
+            const spinner = document.getElementById('spinner');
+            const placeholder = document.getElementById('outputPlaceholder');
+            const codePre = document.getElementById('outputPre');
+            const codeBlock = document.getElementById('outputCode');
+            const errorDiv = document.getElementById('error');
+            const copyBtn = document.getElementById('copyBtn');
+
+            if (!codeInput.trim()) {
+                errorDiv.textContent = "Please enter some code or comments first.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Reset UI
+            errorDiv.style.display = 'none';
+            generateBtn.disabled = true;
+            spinner.style.display = 'block';
+            copyBtn.style.display = 'none';
+            codePre.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.textContent = "Generating...";
+            placeholder.style.color = "var(--text-muted)";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: codeInput,
+                        temperature: parseFloat(temperature)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate code');
+                }
+
+                // The backend already strips the original prompt — we just display the completion.
+                rawGeneratedCode = data.result.trimStart();
+
+                if (!rawGeneratedCode) {
+                    placeholder.style.display = 'flex';
+                    placeholder.textContent = 'The model did not produce any new output. Try a longer prompt.';
+                    return;
+                }
+
+                // Hide placeholder, show prism syntax-highlighted block
+                placeholder.style.display = 'none';
+                codePre.style.display = 'block';
+
+                // Assign code to the <code> element and let Prism highlight it
+                codeBlock.textContent = rawGeneratedCode;
+                Prism.highlightElement(codeBlock);
+
+                // Reveal the Copy button now that there is content to copy
+                copyBtn.style.display = 'flex';
+
+            } catch (error) {
+                console.error("Error generating code:", error);
+                errorDiv.textContent = error.message || "An unexpected error occurred.";
+                errorDiv.style.display = 'block';
+                placeholder.style.display = 'flex';
+                placeholder.textContent = "Generation failed.";
+            } finally {
+                generateBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        // FIX: Ctrl+Enter keyboard shortcut to trigger generation
+        document.getElementById('codeInput').addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                generateCode();
+            }
+        });
+
+        async function copyToClipboard() {
+            if (!rawGeneratedCode) return;
+            try {
+                await navigator.clipboard.writeText(rawGeneratedCode);
+                const copyText = document.getElementById('copyText');
+                copyText.textContent = "Copied!";
+                setTimeout(() => {
+                    copyText.textContent = "Copy";
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy!', err);
+            }
+        }
+    </script>
+</body>
+
+</html>
