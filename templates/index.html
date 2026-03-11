@@ -5,433 +5,838 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Code Assistant</title>
+    <meta name="description"
+        content="AI-powered Python code completion with intent classification and code quality scoring using Random Forest and Transformers.">
     <!-- Prism.js CSS for Syntax Highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+
     <style>
         :root {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg: #080d16;
+            --surface: #0f1929;
+            --card: #152033;
+            --border: #1e3050;
+            --text: #e2eaf6;
+            --muted: #5a7a9a;
             --primary: #3b82f6;
-            --primary-hover: #2563eb;
+            --primary-h: #2563eb;
             --accent: #10b981;
-            --border-color: #334155;
-            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --purple: #a78bfa;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --mono: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+            --sans: 'Inter', system-ui, sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--font-sans);
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            padding: 2rem 1rem;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.12), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(167, 139, 250, 0.07), transparent);
         }
 
-        .container {
+        .page {
             width: 100%;
-            max-width: 900px;
-            background: var(--surface-color);
-            border-radius: 16px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            padding: 2.5rem;
-            border: 1px solid var(--border-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            margin: 2rem;
-            box-sizing: border-box;
-        }
-
-        .container:hover {
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin: 0 0 0.5rem 0;
-            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .header p {
-            color: var(--text-muted);
-            margin: 0;
-            font-size: 1.1rem;
-        }
-
-        .editor-container {
+            max-width: 920px;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
         }
 
-        .input-group {
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            padding: 0.5rem 0 1rem;
+        }
+
+        .header h1 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+            margin-bottom: 0.4rem;
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .badges {
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+
+        .badge-pill {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.6rem;
+            border-radius: 99px;
+            border: 1px solid;
+        }
+
+        .badge-pill.blue {
+            color: #60a5fa;
+            border-color: rgba(96, 165, 250, 0.35);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .badge-pill.purple {
+            color: #a78bfa;
+            border-color: rgba(167, 139, 250, 0.35);
+            background: rgba(167, 139, 250, 0.1);
+        }
+
+        .badge-pill.green {
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.35);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* ── Input section ── */
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
             gap: 0.5rem;
         }
 
-        label {
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
+        .section-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
         }
 
         textarea {
             width: 100%;
-            height: 150px;
-            background-color: rgba(15, 23, 42, 0.8);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            height: 160px;
+            background: rgba(8, 13, 22, 0.8);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             padding: 1rem;
-            font-family: var(--font-mono);
-            font-size: 1rem;
-            line-height: 1.5;
+            font-family: var(--mono);
+            font-size: 0.95rem;
+            line-height: 1.6;
             resize: vertical;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            box-sizing: border-box;
         }
 
         textarea:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
         }
 
+        /* ── Actions row ── */
         .actions {
             display: flex;
             justify-content: space-between;
-            /* Space out slider and button */
             align-items: center;
-        }
-
-        .slider-group {
-            display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             gap: 1rem;
+            margin-top: 1rem;
         }
 
-        .slider-group label {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-color);
-            font-size: 0.9rem;
-            text-transform: none;
-        }
 
-        input[type="range"] {
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-
-        button {
-            background-color: var(--primary);
+        .btn-generate {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
 
-        button:hover {
-            background-color: var(--primary-hover);
+        .btn-generate:hover {
+            opacity: 0.9;
             transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
 
-        button:active {
+        .btn-generate:active {
             transform: translateY(0);
         }
 
-        button:disabled {
-            background-color: var(--text-muted);
+        .btn-generate:disabled {
+            background: var(--border);
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
         .spinner {
             display: none;
-            width: 16px;
-            height: 16px;
+            width: 15px;
+            height: 15px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
+            border-top-color: white;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
+            to {
                 transform: rotate(360deg);
             }
         }
 
-        .output-group {
+        /* ── Error ── */
+        .error-message {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 8px;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.88rem;
+            display: none;
+            margin-top: 0.75rem;
+        }
+
+        /* ── Intent panel ── */
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            animation: fadeUp 0.35s ease;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Intent badge */
+        .intent-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .intent-badge {
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.3rem 0.85rem;
+            border-radius: 99px;
+            letter-spacing: 0.03em;
+        }
+
+        .intent-badge.function {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .intent-badge.class {
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(167, 139, 250, 0.4);
+        }
+
+        .intent-badge.algorithm {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .intent-badge.data_struct {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .intent-badge.general {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .confidence-text {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .confidence-text strong {
+            color: var(--accent);
+        }
+
+        /* Recommended params */
+        .recommended-row {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .param-chip {
+            font-size: 0.78rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: #93c5fd;
+            border-radius: 6px;
+            padding: 0.2rem 0.6rem;
+            font-family: var(--mono);
+            font-weight: 500;
+        }
+
+        /* Probability bars */
+        .prob-grid {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
 
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .prob-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            width: 80px;
+            flex-shrink: 0;
+            font-family: var(--mono);
+        }
+
+        .prob-bar-bg {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 99px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .prob-pct {
+            font-size: 0.72rem;
+            color: var(--muted);
+            width: 36px;
+            text-align: right;
+            font-family: var(--mono);
+        }
+
+        /* ── Output section ── */
         .output-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 0.6rem;
         }
 
         .copy-btn {
-            background-color: var(--surface-color);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.25rem 0.6rem;
+            font-size: 0.78rem;
             border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s;
             display: none;
-            /* Hidden strictly when no code */
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.3rem;
         }
 
         .copy-btn:hover {
-            background-color: var(--border-color);
+            background: var(--border);
+        }
+
+        .output-placeholder {
+            min-height: 160px;
+            background: rgba(8, 13, 22, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-style: italic;
+            font-size: 0.9rem;
         }
 
         pre[class*="language-"] {
             margin: 0 !important;
-            border-radius: 12px !important;
-            background-color: #0f172a !important;
-            border: 1px solid var(--border-color) !important;
+            border-radius: 10px !important;
+            background: #080d16 !important;
+            border: 1px solid var(--border) !important;
             padding: 1rem !important;
             display: none;
-            /* hidden until generated */
-        }
-
-        .output-box {
-            width: 100%;
-            min-height: 200px;
-            background-color: #0f172a;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem;
-            font-family: var(--font-mono);
-            font-size: 1rem;
-            line-height: 1.5;
             overflow-x: auto;
-            white-space: pre-wrap;
-            box-sizing: border-box;
-            color: var(--accent);
-            position: relative;
         }
 
-        .output-box.empty {
-            color: var(--text-muted);
+        /* ── Quality panel ── */
+        .quality-top {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-family: var(--font-sans);
-            font-style: italic;
+            gap: 1.5rem;
+            flex-wrap: wrap;
         }
 
-        .error-message {
-            color: #ef4444;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            display: none;
-            background: rgba(239, 68, 68, 0.1);
-            padding: 0.75rem;
-            border-radius: 8px;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+        /* Score ring */
+        .score-ring-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .score-ring-wrap svg {
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.07);
+            stroke-width: 8;
+        }
+
+        .score-ring-arc {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
+        }
+
+        .score-ring-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .score-ring-text small {
+            font-size: 0.6rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .quality-info {
+            flex: 1;
+        }
+
+        .quality-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .quality-sub {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        /* Feature breakdown chips */
+        .breakdown-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .feat-chip {
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.2rem 0.55rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .feat-chip span {
+            color: var(--text);
+            font-weight: 600;
         }
     </style>
 </head>
 
 <body>
+    <div class="page">
 
-    <div class="container">
+        <!-- ── Header ── -->
         <div class="header">
             <h1>AI Code Assistant</h1>
-            <p>Generate smart code completions powered by Transformers</p>
+            <p>Generate smart Python completions powered by Transformers</p>
+            <div class="badges">
+                <span class="badge-pill blue">TinyStarCoder</span>
+                <span class="badge-pill purple">Random Forest Intent</span>
+                <span class="badge-pill green">RF Quality Scorer</span>
+            </div>
         </div>
 
-        <div class="editor-container">
-            <div class="input-group">
-                <label for="codeInput">Input Code / Context</label>
-                <textarea id="codeInput" placeholder="# function to check prime number&#10;def is_prime(n):"></textarea>
-                <small style="color: var(--text-muted); font-size: 0.8rem;">Tip: Press <kbd
-                        style="background: var(--border-color); padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono);">Ctrl
-                        + Enter</kbd> to generate.</small>
-            </div>
+        <!-- ── Input Card ── -->
+        <div class="card">
+            <div class="section-label"><span class="dot"></span> Input Code / Context</div>
+            <textarea id="codeInput" placeholder="# function to check prime number&#10;def is_prime(n):"></textarea>
+            <small style="color:var(--muted); font-size:0.78rem; margin-top:0.4rem; display:block;">
+                Tip: Press <kbd
+                    style="background:var(--border);padding:1px 5px;border-radius:4px;font-family:var(--mono);">Ctrl+Enter</kbd>
+                to generate.
+            </small>
 
-            <div class="actions">
-                <div class="slider-group">
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <label for="tempSlider" style="margin:0;">
-                            Temperature: <span id="tempValue">0.2</span>
-                        </label>
-                        <small
-                            style="color: var(--text-muted); font-size: 0.75rem; text-transform: none; font-weight: 400;">
-                            Low = precise &nbsp;|&nbsp; High = creative
-                        </small>
-                    </div>
-                    <input type="range" id="tempSlider" min="0.01" max="1.0" step="0.01" value="0.2"
-                        oninput="document.getElementById('tempValue').textContent = parseFloat(this.value).toFixed(2)">
-                </div>
-                <button id="generateBtn" onclick="generateCode()">
-                    Generate Completion
+            <div class="actions" style="justify-content: flex-end;">
+                <button class="btn-generate" id="generateBtn" onclick="runPipeline()">
+                    ✦ Generate
                     <div class="spinner" id="spinner"></div>
                 </button>
             </div>
 
-            <div id="error" class="error-message"></div>
-
-            <div class="output-group">
-                <div class="output-header">
-                    <label>AI Generated Completion</label>
-                    <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        <span id="copyText">Copy</span>
-                    </button>
-                </div>
-                <!-- Placeholder when empty -->
-                <div id="outputPlaceholder" class="output-box empty">Generated code will appear here...</div>
-                <!-- Syntax Highlighted Block -->
-                <pre id="outputPre"><code id="outputCode" class="language-python"></code></pre>
-            </div>
+            <div id="errorDiv" class="error-message"></div>
         </div>
-    </div>
 
-    <!-- Prism.js JS for Syntax Highlighting -->
+        <!-- ── Intent Panel ── -->
+        <div class="panel" id="intentPanel">
+            <div class="panel-title">🎯 Intent Classification · Random Forest</div>
+
+            <div class="intent-row">
+                <span class="intent-badge" id="intentBadge">—</span>
+                <span class="confidence-text">Confidence: <strong id="intentConf">—</strong></span>
+            </div>
+
+            <div class="recommended-row" id="recommendedRow"></div>
+
+            <div class="prob-grid" id="probGrid"></div>
+        </div>
+
+        <!-- ── Output Card ── -->
+        <div class="card">
+            <div class="output-header">
+                <div class="section-label" style="margin:0"><span class="dot" style="background:var(--accent)"></span>
+                    AI Generated Completion</div>
+                <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    <span id="copyText">Copy</span>
+                </button>
+            </div>
+            <div id="outputPlaceholder" class="output-placeholder">Generated code will appear here…</div>
+            <pre id="outputPre"><code id="outputCode" class="language-python"></code></pre>
+        </div>
+
+        <!-- ── Quality Panel ── -->
+        <div class="panel" id="qualityPanel">
+            <div class="panel-title">📊 Code Quality Score · Random Forest</div>
+
+            <div class="quality-top">
+                <!-- SVG ring -->
+                <div class="score-ring-wrap">
+                    <svg width="80" height="80" viewBox="0 0 80 80">
+                        <circle class="score-ring-bg" cx="40" cy="40" r="32" />
+                        <circle class="score-ring-arc" id="scoreArc" cx="40" cy="40" r="32" stroke-dasharray="201.06"
+                            stroke-dashoffset="201.06" />
+                    </svg>
+                    <div class="score-ring-text">
+                        <span id="scoreNum">0</span>
+                        <small>/ 100</small>
+                    </div>
+                </div>
+
+                <div class="quality-info">
+                    <div class="quality-label" id="qualityLabel">—</div>
+                    <div class="quality-sub">Based on 10 structural code features</div>
+                </div>
+            </div>
+
+            <div class="breakdown-grid" id="breakdownGrid"></div>
+        </div>
+
+    </div><!-- /page -->
+
+    <!-- Prism.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
     <script>
-        let rawGeneratedCode = ""; // Keep track for copying
+        let rawGeneratedCode = "";
 
-        async function generateCode() {
-            const codeInput = document.getElementById('codeInput').value;
-            const temperature = document.getElementById('tempSlider').value;
-            const generateBtn = document.getElementById('generateBtn');
-            const spinner = document.getElementById('spinner');
-            const placeholder = document.getElementById('outputPlaceholder');
-            const codePre = document.getElementById('outputPre');
-            const codeBlock = document.getElementById('outputCode');
-            const errorDiv = document.getElementById('error');
-            const copyBtn = document.getElementById('copyBtn');
+        // ── Colour helpers ────────────────────────────────────────────────────────
+        function scoreColor(s) {
+            if (s >= 90) return "#10b981";
+            if (s >= 75) return "#3b82f6";
+            if (s >= 50) return "#f59e0b";
+            return "#ef4444";
+        }
 
-            if (!codeInput.trim()) {
-                errorDiv.textContent = "Please enter some code or comments first.";
-                errorDiv.style.display = 'block';
+        // ── Render intent panel ───────────────────────────────────────────────────
+        function renderIntent(data) {
+            const panel = document.getElementById("intentPanel");
+
+            // Badge
+            const badge = document.getElementById("intentBadge");
+            badge.textContent = data.intent;
+            badge.className = "intent-badge " + data.intent;
+
+            // Confidence
+            document.getElementById("intentConf").textContent =
+                (data.confidence * 100).toFixed(1) + "%";
+
+            // Recommended params
+            const row = document.getElementById("recommendedRow");
+            const rec = data.recommended;
+            row.innerHTML = `
+        <span class="param-chip">🌡 temp = ${rec.temperature}</span>
+        <span class="param-chip">🔢 max_tokens = ${rec.max_new_tokens}</span>
+    `;
+
+            // Probability bars
+            const grid = document.getElementById("probGrid");
+            grid.innerHTML = "";
+            const labels = ["function", "class", "algorithm", "data_struct", "general"];
+            labels.forEach(lbl => {
+                const pct = ((data.probabilities[lbl] || 0) * 100).toFixed(1);
+                grid.innerHTML += `
+        <div class="prob-row">
+            <div class="prob-label">${lbl}</div>
+            <div class="prob-bar-bg">
+                <div class="prob-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="prob-pct">${pct}%</div>
+        </div>`;
+            });
+
+            panel.style.display = "flex";
+        }
+
+        // ── Render quality panel ──────────────────────────────────────────────────
+        function renderQuality(q) {
+            const panel = document.getElementById("qualityPanel");
+            const score = q.score;
+            const color = scoreColor(score);
+            const CIRCUM = 201.06; // 2π × 32
+
+            // Ring
+            const arc = document.getElementById("scoreArc");
+            arc.style.stroke = color;
+            arc.style.strokeDashoffset = CIRCUM * (1 - score / 100);
+
+            // Number + label
+            document.getElementById("scoreNum").textContent = Math.round(score);
+            document.getElementById("scoreNum").style.color = color;
+            const labelEl = document.getElementById("qualityLabel");
+            labelEl.textContent = q.label;
+            labelEl.style.color = color;
+
+            // Breakdown chips
+            const grid = document.getElementById("breakdownGrid");
+            grid.innerHTML = "";
+            const nice = {
+                line_count: "Lines",
+                has_return: "return",
+                bracket_balance: "Brackets",
+                indentation_ok: "Indent",
+                has_docstring: "Docstring",
+                has_comments: "Comments",
+                avg_line_length: "Avg Len",
+                keyword_density: "Keyword%",
+                has_def: "def",
+                has_type_hints: "Types",
+            };
+            for (const [key, label] of Object.entries(nice)) {
+                const val = q.breakdown[key];
+                let display;
+                if (typeof val === "number" && val <= 1 && !Number.isInteger(val)) {
+                    display = (val * 100).toFixed(0) + "%";
+                } else if (typeof val === "number" && val <= 1) {
+                    display = val ? "✓" : "✗";
+                } else {
+                    display = val ?? "—";
+                }
+                grid.innerHTML += `<div class="feat-chip">${label}: <span>${display}</span></div>`;
+            }
+
+            panel.style.display = "flex";
+        }
+
+        // ── Main pipeline ─────────────────────────────────────────────────────────
+        async function runPipeline() {
+            const prompt = document.getElementById("codeInput").value;
+            const btn = document.getElementById("generateBtn");
+            const spin = document.getElementById("spinner");
+            const errorDiv = document.getElementById("errorDiv");
+            const placeholder = document.getElementById("outputPlaceholder");
+            const pre = document.getElementById("outputPre");
+            const code = document.getElementById("outputCode");
+            const copyBtn = document.getElementById("copyBtn");
+
+            if (!prompt.trim()) {
+                errorDiv.textContent = "Please enter some code or a comment first.";
+                errorDiv.style.display = "block";
                 return;
             }
 
-            // Reset UI
-            errorDiv.style.display = 'none';
-            generateBtn.disabled = true;
-            spinner.style.display = 'block';
-            copyBtn.style.display = 'none';
-            codePre.style.display = 'none';
-            placeholder.style.display = 'flex';
-            placeholder.textContent = "Generating...";
-            placeholder.style.color = "var(--text-muted)";
+            // Reset
+            errorDiv.style.display = "none";
+            btn.disabled = true;
+            spin.style.display = "block";
+            copyBtn.style.display = "none";
+            pre.style.display = "none";
+            placeholder.style.display = "flex";
+            placeholder.textContent = "Classifying intent…";
+            document.getElementById("intentPanel").style.display = "none";
+            document.getElementById("qualityPanel").style.display = "none";
 
             try {
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        prompt: codeInput,
-                        temperature: parseFloat(temperature)
-                    })
+                // ── Step 1: Classify intent ──────────────────────────────────────
+                const intentRes = await fetch("/classify_intent", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt }),
                 });
+                if (!intentRes.ok) throw new Error("Intent classification failed.");
+                const intentData = await intentRes.json();
+                renderIntent(intentData);
 
-                const data = await response.json();
+                // Use RF-recommended params (override manual slider with RF suggestion)
+                const rfTemp = intentData.recommended.temperature;
+                const rfTokens = intentData.recommended.max_new_tokens;
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to generate code');
-                }
+                placeholder.textContent = "Generating code…";
 
-                // The backend already strips the original prompt — we just display the completion.
-                rawGeneratedCode = data.result.trimStart();
+                // ── Step 2: Generate code ─────────────────────────────────────────
+                const genRes = await fetch("/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prompt,
+                        temperature: rfTemp,
+                        max_tokens: rfTokens,
+                    }),
+                });
+                const genData = await genRes.json();
+                if (!genRes.ok) throw new Error(genData.error || "Generation failed.");
+
+                rawGeneratedCode = (genData.result || "").trimStart();
 
                 if (!rawGeneratedCode) {
-                    placeholder.style.display = 'flex';
-                    placeholder.textContent = 'The model did not produce any new output. Try a longer prompt.';
+                    placeholder.textContent = "The model produced no output. Try a longer prompt.";
                     return;
                 }
 
-                // Hide placeholder, show prism syntax-highlighted block
-                placeholder.style.display = 'none';
-                codePre.style.display = 'block';
+                // Show syntax-highlighted code
+                placeholder.style.display = "none";
+                pre.style.display = "block";
+                code.textContent = rawGeneratedCode;
+                Prism.highlightElement(code);
+                copyBtn.style.display = "flex";
 
-                // Assign code to the <code> element and let Prism highlight it
-                codeBlock.textContent = rawGeneratedCode;
-                Prism.highlightElement(codeBlock);
+                // ── Step 3: Render quality panel ─────────────────────────────────
+                if (genData.quality) {
+                    renderQuality(genData.quality);
+                }
 
-                // Reveal the Copy button now that there is content to copy
-                copyBtn.style.display = 'flex';
-
-            } catch (error) {
-                console.error("Error generating code:", error);
-                errorDiv.textContent = error.message || "An unexpected error occurred.";
-                errorDiv.style.display = 'block';
-                placeholder.style.display = 'flex';
+            } catch (err) {
+                console.error(err);
+                errorDiv.textContent = err.message || "An unexpected error occurred.";
+                errorDiv.style.display = "block";
                 placeholder.textContent = "Generation failed.";
             } finally {
-                generateBtn.disabled = false;
-                spinner.style.display = 'none';
+                btn.disabled = false;
+                spin.style.display = "none";
             }
         }
 
-        // FIX: Ctrl+Enter keyboard shortcut to trigger generation
-        document.getElementById('codeInput').addEventListener('keydown', function (e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                generateCode();
-            }
+        // Ctrl+Enter shortcut
+        document.getElementById("codeInput").addEventListener("keydown", e => {
+            if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); runPipeline(); }
         });
 
+        // Copy to clipboard
         async function copyToClipboard() {
             if (!rawGeneratedCode) return;
             try {
                 await navigator.clipboard.writeText(rawGeneratedCode);
-                const copyText = document.getElementById('copyText');
-                copyText.textContent = "Copied!";
-                setTimeout(() => {
-                    copyText.textContent = "Copy";
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy!', err);
-            }
+                const t = document.getElementById("copyText");
+                t.textContent = "Copied!";
+                setTimeout(() => t.textContent = "Copy", 2000);
+            } catch { }
         }
     </script>
 </body>
